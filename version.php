@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2020061500;
+$plugin->version = 2020061501;
 $plugin->requires = 2020061500;
 $plugin->component = 'filter_personalization';
 $plugin->maturity = MATURITY_STABLE;
