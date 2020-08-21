@@ -1,0 +1,53 @@
+language: php
+
+services:
+  - mysql
+  - docker
+
+cache:
+  directories:
+    - $HOME/.composer/cache
+    - $HOME/.npm
+
+php:
+ - 7.2
+
+env:
+  global:
+  # Set PROFILE to either chrome or firefox depending on your preference.
+  - PROFILE=chrome
+  # This prevents starting selenium and php servers using moodle-plugin-ci in-built functionality.
+  - MOODLE_START_BEHAT_SERVERS=NO
+  - MOODLE_BRANCH=MOODLE_39_STABLE
+ matrix:
+  - DB=mysqli
+
+before_install:
+- phpenv config-rm xdebug.ini
+- nvm install 8.9
+- nvm use 8.9
+- cd ../..
+- composer create-project -n --no-dev --prefer-dist blackboard-open-source/moodle-plugin-ci ci ^2
+- export PATH="$(cd ci/bin; pwd):$(cd ci/vendor/bin; pwd):$PATH"
+
+install:
+- moodle-plugin-ci install -vvv
+# Start Selenuim Standalone server using docker123
+- docker run -d -p 127.0.0.1:4444:4444 --net=host -v /dev/shm:/dev/shm -v $HOME/build/moodle:$HOME/build/moodle selenium/standalone-${PROFILE}:3
+# Start php built-in server.
+- php -S localhost:8000 -t $HOME/build/moodle > /dev/null 2>&1 &
+# Wait to make sure docker container is fully running.
+- sleep 10
+
+script:
+  - moodle-plugin-ci phplint
+  - moodle-plugin-ci phpcpd
+  - moodle-plugin-ci phpmd
+  - moodle-plugin-ci codechecker
+  - moodle-plugin-ci validate
+  - moodle-plugin-ci savepoints
+  - moodle-plugin-ci mustache
+  - moodle-plugin-ci grunt
+  - moodle-plugin-ci phpdoc
+  - moodle-plugin-ci phpunit
+  - moodle-plugin-ci behat --profile $PROFILE
